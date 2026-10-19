@@ -15,6 +15,8 @@ from datetime import datetime, timedelta, timezone
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 INPUT = ROOT / "candidates.json"
 OUTPUT = ROOT / "ranking.json"
+BATCH_SIZE = 20
+CANDIDATE_COUNT = 100
 API = "https://api.hyperliquid.xyz/info"
 WINDOW_DAYS = 30
 MAX_PAGES = 4
@@ -171,14 +173,31 @@ def calculate_metrics(fills, account_value, incomplete=False):
 
 def main():
     data = json.loads(INPUT.read_text(encoding="utf-8"))
-    wallets = data.get("candidates", [])[:20]
+    wallets = data.get("candidates", [])[:CANDIDATE_COUNT]
     if not wallets:
         raise RuntimeError("No candidate wallets, run screener first")
     now = datetime.now(timezone.utc)
     until_ms = int(now.timestamp() * 1000)
     since_ms = int((now - timedelta(days=WINDOW_DAYS)).timestamp() * 1000)
+    previous = {}
+    if OUTPUT.exists():
+        try:
+            old = json.loads(OUTPUT.read_text(encoding="utf-8"))
+            previous = {r["address"].lower(): r for r in old.get("ranking", []) if isinstance(r, dict) and r.get("address")}
+        except (ValueError, OSError, KeyError):
+            previous = {}
+    # Rotate a batch each run to remain within public API limits.
+    batch_index = int(now.timestamp() // (6 * 3600)) % max(1, math.ceil(len(wallets) / BATCH_SIZE))
+    start = batch_index * BATCH_SIZE
     rows, failed = [], 0
     for index, candidate in enumerate(wallets):
+        if not (start <= index < start + BATCH_SIZE):
+            old = previous.get(str(candidate.get("address", "")).lower())
+            if old:
+                rows.append(old)
+            else:
+                rows.append({"address":candidate.get("address"),"score":None,"quality":"PENDING","screeningScore":candidate.get("score"),"accountValue":candidate.get("accountValue"),"leaderboardPnl30":candidate.get("pnl30")})
+            continue
         address = str(candidate.get("address") or "")
         if not (address.startswith("0x") and len(address) == 42):
             continue
@@ -193,6 +212,7 @@ def main():
         try:
             fills, truncated = get_fills(address, since_ms, until_ms)
             record.update(calculate_metrics(fills, safe(candidate.get("accountValue")), truncated))
+            record["checkedAt"] = now.isoformat()
             print(f"Wallet {index+1}/{len(wallets)}: {address[:10]} "
                   f"{len(fills)} fills, {record['closingOrders30']} closes, "
                   f"quality={record['quality']}, score={record['score']}")
@@ -205,20 +225,25 @@ def main():
             print(f"Wallet {index+1}/{len(wallets)} unavailable: {type(exc).__name__}")
         rows.append(record)
         time.sleep(0.25)
-    if failed == len(rows):
+    if failed >= min(BATCH_SIZE, len(wallets)):
         raise RuntimeError("All wallet requests failed; previous ranking preserved")
+    # Previously evaluated snapshots may be stale after rotation. Mark their age in UI.
     # Qualified first, then insufficient rows; never backfill unknown scores with 100.
     rows.sort(key=lambda x: (x.get("score") is not None,
                              x.get("score") if x.get("score") is not None else -1,
                              safe(x.get("netRealizedExFunding30"))), reverse=True)
     snapshot = {
         "updatedAt": now.isoformat(),
+        "batchIndex": batch_index,
+        "batchSize": BATCH_SIZE,
+        "candidateCount": len(wallets),
         "windowStart": datetime.fromtimestamp(since_ms / 1000, timezone.utc).isoformat(),
         "windowDays": WINDOW_DAYS,
         "sourceCandidatesUpdatedAt": data.get("updatedAt"),
         "evaluatedCount": sum(r.get("quality") == "EVALUATED" for r in rows),
         "insufficientCount": sum(r.get("quality") in ("INCOMPLETE", "INSUFFICIENT") for r in rows),
         "unavailableCount": sum(r.get("quality") == "UNAVAILABLE" for r in rows),
+        "pendingCount": sum(r.get("quality") == "PENDING" for r in rows),
         "methodology": {
             "winRate": "Winning closing orders / (winning + losing closing orders), gross closedPnl; not independent round-trip trade win rate.",
             "profitFactor": "Gross closedPnl of winning closing orders / absolute gross closedPnl of losing closing orders; excludes fees and funding.",
