@@ -92,15 +92,29 @@ def main():
             if item:
                 selected.append(item)
     selected.sort(key=lambda item: (item["score"], item["pnl30"]), reverse=True)
+    # Preserve the established top 20 so existing V3 monitoring has stable identities.
+    # Diversify the remaining 80 by observed volume to find accounts whose recent
+    # fills have a better chance of being fully available from the public API.
     top, seen = [], set()
-    for item in selected:
-        address = item["address"].lower()
-        if address in seen:
-            continue
-        seen.add(address)
-        top.append(item)
-        if len(top) == 20:
-            break
+    def add(items, limit):
+        for item in items:
+            address = item["address"].lower()
+            if address in seen:
+                continue
+            seen.add(address)
+            top.append(item)
+            if len(top) >= limit:
+                break
+
+    add(selected, 20)
+    smaller = [r for r in selected if 10000 <= r["vol30"] <= 5000000]
+    mid = [r for r in selected if 5000000 < r["vol30"] <= 50000000]
+    large = [r for r in selected if r["vol30"] > 50000000]
+    # A diversity heuristic, not proof that fills will be available.
+    add(smaller, 55)
+    add(mid, 85)
+    add(large, 100)
+    add(selected, 100)
     if not top:
         raise RuntimeError("No candidates qualified; preserve previous snapshot")
     snapshot = {
@@ -108,6 +122,8 @@ def main():
         "source": "Hyperliquid public leaderboard (stats endpoint)",
         "dataDisclaimer": "Account-level heuristic; NOT verified Futures-only PnL, win rate, or prediction.",
         "rowsProcessed": len(rows), "filterQualified": len(selected),
+        "selectionMethod": "Top 20 original + 80 diversified by monthly traded volume; all unverified candidates",
+        "candidateLimit": 100,
         "candidates": top,
     }
     OUTPUT.write_text(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
