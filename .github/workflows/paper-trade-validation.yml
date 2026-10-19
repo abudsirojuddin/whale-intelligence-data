@@ -23,6 +23,8 @@ jobs:
           python-version: '3.12'
       - name: Validate syntax
         run: python -m py_compile scripts/paper_trading.py
+      - name: Offline unit tests
+        run: python scripts/test_paper_trading.py
       - name: Update forward-only paper journal
         run: python scripts/paper_trading.py
       - name: Commit paper journal and performance
