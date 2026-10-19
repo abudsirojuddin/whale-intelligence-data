@@ -3,6 +3,7 @@ import json, math, os, time, urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from selection_rules import is_qualified
 
 ROOT=Path(__file__).resolve().parent.parent
 def read(name, default):
@@ -82,10 +83,7 @@ def main():
         if not isinstance(positions,dict):continue
         if not 0<=now-ts(timestamps.get(addr) or state.get('lastRun'))<=1800:continue
         fresh+=1;rank=quality.get(addr.lower(),{})
-        eligible=(rank.get('quality')=='EVALUATED' and n(rank.get('score'))>=65 and
-            n(rank.get('netRealizedExFunding30'))>0 and n(rank.get('profitFactorCloseOrders30'))>=1.5 and
-            n(rank.get('realizedDrawdownProxyToEquity'))<=.1 and n(rank.get('closingDays30'))>=10 and
-            0<=now-ts(rank.get('checkedAt'))<=48*3600)
+        eligible=is_qualified(rank,now)
         if eligible:eligible_count+=1
         for coin,pos in positions.items():
             side=pos.get('side');notional=n(pos.get('notional'))
