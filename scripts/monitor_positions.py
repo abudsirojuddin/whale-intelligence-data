@@ -182,9 +182,26 @@ def main():
         "checkedWallets": succeeded, "events": alerts,
         "disclaimer": "Snapshot-based; delayed/missed changes possible. Not a trading signal.",
     }, separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
-    if fresh_events:
+    # V4.1 safety: low-quality / insufficient history activity is still logged
+    # on the dashboard, but never presented as a high-confidence Telegram alert.
+    rankings = read_json(ROOT / "ranking.json", {"ranking": []}).get("ranking", [])
+    eligible = set()
+    for item in rankings:
+        if item.get("quality") != "EVALUATED" or number(item.get("score")) < 60:
+            continue
+        checked = item.get("checkedAt")
+        try:
+            age = (datetime.now(timezone.utc) -
+                   datetime.fromisoformat(checked.replace("Z", "+00:00"))).total_seconds()
+        except (ValueError, TypeError, AttributeError):
+            continue
+        if 0 <= age < 48 * 3600:
+            eligible.add(item["address"].lower())
+    priority_events = [event for event in fresh_events if event["address"].lower() in eligible]
+    print(f"Quality-gated Telegram: {len(priority_events)}/{len(fresh_events)} priority events; {len(eligible)} eligible wallets.")
+    if priority_events:
         entries = []
-        for ev in fresh_events[:8]:
+        for ev in priority_events[:8]:
             entries.append(f"{ev['event']} {ev['coin']} {ev['side']} | {ev['address'][:10]}… "
                            f"| approx. ${ev['notional']:,.0f}")
         note = "🐋 Whale Intelligence — position changes\n" + "\n".join(entries)
