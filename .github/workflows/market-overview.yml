@@ -1,0 +1,38 @@
+name: Build Whale Market Overview
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '9,29,49 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whale-market-overview
+  cancel-in-progress: false
+
+jobs:
+  overview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build overview and validate conditional setup
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/build_market_intelligence.py
+      - name: Commit research snapshots
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add market_overview.json setups.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: update whale market overview and research setups [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
