@@ -150,6 +150,8 @@ def main():
     if not isinstance(old_wallets, dict):
         raise RuntimeError("Unexpected state format")
     observed = dict(old_wallets)
+    # Keep per-wallet timestamps, so stale holdings are not counted as live.
+    checked_at = dict(old.get('checkedAtByWallet', {}))
     fresh_events = []
     succeeded = 0
     for addr in addresses:
@@ -162,6 +164,7 @@ def main():
             else:
                 print("Baseline created for wallet:", addr[:10])
             observed[key] = current
+            checked_at[key] = now()
         except Exception as exc:
             print("WARNING wallet temporarily unavailable", addr[:10], str(exc))
         time.sleep(0.18)
@@ -170,7 +173,9 @@ def main():
 
     observed = {address.lower(): observed[address.lower()] for address in addresses if address.lower() in observed}
     timestamp = now()
-    STATE.write_text(json.dumps({"lastRun": timestamp, "wallets": observed},
+    checked_at = {a:checked_at.get(a) for a in observed if checked_at.get(a)}
+    STATE.write_text(json.dumps({"lastRun": timestamp, "wallets": observed,
+                                "checkedAtByWallet": checked_at},
                                 separators=(",", ":"), ensure_ascii=False) + "\n", encoding="utf-8")
     existing = read_json(ALERTS, {"events": []})
     history = existing.get("events", [])
