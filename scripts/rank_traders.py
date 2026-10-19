@@ -187,7 +187,16 @@ def main():
         except (ValueError, OSError, KeyError):
             previous = {}
     # Rotate a batch each run to remain within public API limits.
-    batch_index = int(now.timestamp() // (6 * 3600)) % max(1, math.ceil(len(wallets) / BATCH_SIZE))
+    # Advance by completed run, not wall-clock time; manual retries advance batches.
+    # Rotate back to zero when candidate identities change materially.
+    try:
+        old_meta = json.loads(OUTPUT.read_text(encoding="utf-8")) if OUTPUT.exists() else {}
+    except (ValueError, OSError):
+        old_meta = {}
+    count_batches = max(1, math.ceil(len(wallets) / BATCH_SIZE))
+    batch_index = (int(old_meta.get("batchIndex", -1)) + 1) % count_batches
+    if int(old_meta.get("candidateCount", 0)) != len(wallets):
+        batch_index = 0
     start = batch_index * BATCH_SIZE
     rows, failed = [], 0
     for index, candidate in enumerate(wallets):
