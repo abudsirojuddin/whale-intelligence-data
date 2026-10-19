@@ -98,6 +98,8 @@ def main():
     top, seen = [], set()
     def add(items, limit):
         for item in items:
+            if len(top) >= limit:
+                break
             address = item["address"].lower()
             if address in seen:
                 continue
