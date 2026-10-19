@@ -30,11 +30,17 @@ jobs:
         run: python scripts/monitor_positions.py
       - name: Build overview and validate conditional setup
         run: python scripts/build_market_intelligence.py
+      - name: Verify forward-paper simulation logic
+        run: |
+          python -m py_compile scripts/paper_trading.py
+          python scripts/test_paper_trading.py
+      - name: Register setup immediately and update paper journal
+        run: python scripts/paper_trading.py
       - name: Commit research snapshots
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add position_state.json alerts.json market_overview.json setups.json
+          git add position_state.json alerts.json market_overview.json setups.json paper_trades.json paper_performance.json
           if ! git diff --cached --quiet; then
             git commit -m "data: update whale market overview and research setups [skip ci]"
             git pull --rebase origin main
