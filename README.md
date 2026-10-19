@@ -18,3 +18,15 @@ The existing Cloudflare Worker V4 remains deployed independently. It displays on
 - `ranking.json`: rotated evaluations, including `batchIndex`, `pendingCount`, and `checkedAt` for newly evaluated wallets.
 - `position_state.json` and `alerts.json`: best-effort position snapshots.
 - Secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are stored in GitHub Actions Secrets, not in the repository.
+
+
+## V4.2 — Whale Market Overview / conditional paper setups
+
+Workflow: `Build Whale Market Overview` (`.github/workflows/market-overview.yml`).
+Produces `market_overview.json` with counts and approximate notional LONG/SHORT positions for observed wallets (not all traders), and `setups.json` with either `NO_TRADE` or carefully limited conditional research scenarios.
+
+**No automatic LONG/SHORT recommendation is sent.** Trading suggestions are deliberately withheld from Telegram until a prospective paper-trading period establishes signal quality after spreads, exchange fees, realistic delays and adverse fills.
+
+Research setup requires: at least two separately addressed wallets with recent EVALUATED ranking score >=65, positive observed net realized PnL, observed closing-order profit factor >=1.5, drawdown proxy <=10% and >=10 closing days; a recent qualifying opening/increase; synchronized not-stale snapshots; BTC/ETH/SOL market only; 24-hour volume >=$20m, spread <=12bps, two-timeframe EMA trend agreement, and ATR-based stop and target with modeled net RR >=1.55. **Two addresses do not prove two independently owned traders.**
+
+Entry levels are an indicative *snapshot from Hyperliquid at validation*, not a guaranteed executable Binance quote. A 15-minute expiry is attached. Per-idea risk cap in the hypothetical Rp500,000 bankroll is Rp5,000; no automatic trading, leverage or broker order instruction is implemented. In normal operation NO_TRADE may be frequent (and desirable).
