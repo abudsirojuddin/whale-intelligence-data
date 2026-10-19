@@ -10,6 +10,7 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from selection_rules import is_qualified
 
 ROOT = Path(__file__).resolve().parent.parent
 CANDIDATES = ROOT / "candidates.json"
@@ -130,8 +131,13 @@ def main():
     updated = datetime.fromisoformat(snapshot["updatedAt"].replace("Z", "+00:00"))
     if (datetime.now(timezone.utc) - updated).total_seconds() > 72 * 3600:
         raise RuntimeError("Candidate list older than 72 hours: refusing stale monitoring")
+    # Research-qualified wallets first; fill remaining slots from the screener.
+    # Re-evaluate criteria at runtime rather than trusting a stale static watchlist.
+    ranking_rows = read_json(ROOT / "ranking.json", {"ranking": []}).get("ranking", [])
+    priority_addresses = [r.get("address", "") for r in ranking_rows if is_qualified(r)]
     addresses = []
-    for candidate in snapshot["candidates"]:
+    combined = [{"address": a} for a in priority_addresses] + snapshot["candidates"]
+    for candidate in combined:
         address = candidate.get("address", "")
         if isinstance(address, str) and len(address) == 42 and address.startswith("0x"):
             try:
@@ -190,18 +196,7 @@ def main():
     # V4.1 safety: low-quality / insufficient history activity is still logged
     # on the dashboard, but never presented as a high-confidence Telegram alert.
     rankings = read_json(ROOT / "ranking.json", {"ranking": []}).get("ranking", [])
-    eligible = set()
-    for item in rankings:
-        if item.get("quality") != "EVALUATED" or number(item.get("score")) < 60:
-            continue
-        checked = item.get("checkedAt")
-        try:
-            age = (datetime.now(timezone.utc) -
-                   datetime.fromisoformat(checked.replace("Z", "+00:00"))).total_seconds()
-        except (ValueError, TypeError, AttributeError):
-            continue
-        if 0 <= age < 48 * 3600:
-            eligible.add(item["address"].lower())
+    eligible = {str(item["address"]).lower() for item in rankings if is_qualified(item)}
     priority_events = [event for event in fresh_events if event["address"].lower() in eligible]
     print(f"Quality-gated Telegram: {len(priority_events)}/{len(fresh_events)} priority events; {len(eligible)} eligible wallets.")
     if priority_events:
