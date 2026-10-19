@@ -22,11 +22,11 @@ def main():
         return 1
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     message = (
-        "🐋 WHALE INTELLIGENCE V3\\n"
-        "✅ Tes notifikasi Telegram berhasil.\\n"
-        f"Waktu: {stamp}\\n"
-        "GitHub Actions dapat mengirim pesan melalui bot.\\n"
-        "Notifikasi whale otomatis dikirim hanya saat perubahan posisi terdeteksi.\\n"
+        "🐋 WHALE INTELLIGENCE V3\n"
+        "✅ Tes notifikasi Telegram berhasil.\n"
+        f"Waktu: {stamp}\n"
+        "GitHub Actions dapat mengirim pesan melalui bot.\n"
+        "Notifikasi whale otomatis dikirim hanya saat perubahan posisi terdeteksi.\n"
         "⚠️ Bukan sinyal trading."
     )
     body = json.dumps({"chat_id": chat_id, "text": message}).encode("utf-8")
