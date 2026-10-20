@@ -1,0 +1,36 @@
+name: Binance USD-M Monthly Research Pilot
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/binance_monthly_archive.py"
+      - "scripts/test_binance_monthly_archive.py"
+      - ".github/workflows/binance-monthly-research.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline monthly parser tests
+        run: |
+          python -m py_compile scripts/binance_monthly_archive.py scripts/test_binance_monthly_archive.py
+          python scripts/test_binance_monthly_archive.py
+      - name: Collect two complete delayed BTC USD-M months
+        run: python scripts/binance_monthly_archive.py --months 2 --symbols BTCUSDT
+      - name: Analyze predeclared technical strategy (not executable)
+        run: python scripts/intraday_historical_diagnostic.py
+      - name: Upload research
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binance-monthly-pilot-${{ github.run_id }}
+          path: intraday_historical_diagnostic.json
+          retention-days: 7
