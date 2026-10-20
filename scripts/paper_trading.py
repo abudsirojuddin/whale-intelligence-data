@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
+from market_universe import RESEARCH_COINS
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "paper_trades.json"
@@ -71,7 +72,7 @@ def register(ledger, setups, now):
     added = 0
     for s in setups["setups"]:
         coin, side = s.get("coin"), s.get("direction")
-        if coin not in ("BTC","ETH","SOL") or side not in ("LONG","SHORT"): continue
+        if coin not in RESEARCH_COINS or side not in ("LONG","SHORT"): continue
         uid = f"{int(stamp*1000)}:{coin}:{side}"
         if uid in ids: continue
         deadline = when(s.get("expiresAt"))
