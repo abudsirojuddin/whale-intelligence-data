@@ -1,0 +1,29 @@
+name: Binance Final Kline Boundary Diagnosis
+on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/binance_kline_close_probe.py"
+      - ".github/workflows/binance-final-kline-probe.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install websocket-client==1.8.0
+      - name: Check for actual kline closure, not handshake
+        run: python scripts/binance_kline_close_probe.py
+      - name: Preserve result even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binance-kline-boundary-${{ github.run_id }}
+          path: binance_kline_close_probe.json
+          retention-days: 7
