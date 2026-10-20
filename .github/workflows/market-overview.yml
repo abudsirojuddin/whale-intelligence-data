@@ -3,13 +3,13 @@ name: Build Whale Market Overview
 on:
   workflow_dispatch:
   schedule:
-    - cron: '9,29,49 * * * *'
+    - cron: '9,19,29,39,49,59 * * * *'
 
 permissions:
   contents: write
 
 concurrency:
-  group: whale-market-overview
+  group: whale-research-writes
   cancel-in-progress: false
 
 jobs:
@@ -58,11 +58,19 @@ jobs:
           python -m py_compile scripts/notify_paper_setups.py
           python scripts/test_notify_paper_setups.py
           python scripts/notify_paper_setups.py
+      - name: Notify recent finalized paper simulation results
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -m py_compile scripts/notify_paper_results.py
+          python scripts/test_notify_paper_results.py
+          python scripts/notify_paper_results.py
       - name: Commit research snapshots
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add position_state.json alerts.json market_scan.json market_overview.json setups.json technical_setups.json signal_board.json paper_trades.json paper_performance.json paper_notification_state.json
+          git add position_state.json alerts.json market_scan.json market_overview.json setups.json technical_setups.json signal_board.json paper_trades.json paper_performance.json paper_notification_state.json paper_result_state.json
           if ! git diff --cached --quiet; then
             git commit -m "data: update whale market overview and research setups [skip ci]"
             git pull --rebase origin main
