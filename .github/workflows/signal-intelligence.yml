@@ -25,6 +25,10 @@ jobs:
         run: |
           python -m py_compile scripts/signal_pipeline.py scripts/test_signal_pipeline.py
           python scripts/test_signal_pipeline.py
+      - name: Analyze rejection reasons and signal funnel
+        run: |
+          python -m py_compile scripts/signal_diagnostics.py scripts/market_universe.py
+          python scripts/signal_diagnostics.py
       - name: Assess newest wallet observations and send tiered Telegram research
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -34,7 +38,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add signal_intelligence.json signal_state.json
+          git add signal_intelligence.json signal_state.json signal_diagnostics.json signal_diagnostics_history.json
           if ! git diff --cached --quiet; then
             git commit -m "data: update qualified signal intelligence [skip ci]"
             git pull --rebase origin main
