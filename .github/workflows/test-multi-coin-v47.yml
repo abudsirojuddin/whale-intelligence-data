@@ -1,0 +1,21 @@
+name: Test Multi Coin Scanner V4.7
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Syntax check
+        run: python -m py_compile scripts/multi_coin_scanner.py scripts/build_market_intelligence.py scripts/monitor_positions.py
+      - name: Scan markets without deploying or trading
+        run: python scripts/multi_coin_scanner.py
+      - name: Verify output structure
+        run: |
+          python -c "import json; d=json.load(open('market_scan.json')); assert d['assetsChecked']==10; print('V4.7 scan validated:',d['technicalPassCount'],'passes')"
