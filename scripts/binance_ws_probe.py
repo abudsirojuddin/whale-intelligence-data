@@ -13,7 +13,7 @@ import websocket
 
 ROOT=Path(__file__).resolve().parent.parent
 STREAMS=("btcusdt@kline_15m","ethusdt@kline_1h","btcusdt@bookTicker","btcusdt@markPrice@1s")
-URL="wss://fstream.binance.com/stream?streams="+"/".join(STREAMS)
+URL="wss://fstream.binance.com/market/stream?streams="+"/".join(STREAMS)
 EXPECTED={
     "btcusdt@kline_15m":("kline", "BTCUSDT", "15m"),
     "ethusdt@kline_1h":("kline", "ETHUSDT", "1h"),
@@ -54,34 +54,45 @@ def validate_event(message,now_ms):
 def main():
     observed={}
     counts={name:0 for name in STREAMS}
-    error=None
-    ws=None
-    started=time.monotonic()
-    try:
-        ws=websocket.create_connection(URL,timeout=7,enable_multithread=True,
-                                       header={"User-Agent":"WhaleIntelligence-ReadOnly/2"})
-        ws.settimeout(3)
-        while time.monotonic()-started<25 and not all(counts.values()):
-            try:
-                msg=json.loads(ws.recv())
-            except websocket.WebSocketTimeoutException:
-                continue
-            result=validate_event(msg,int(time.time()*1000))
-            if result:
-                stream=msg["stream"]
-                counts[stream]+=1
-                observed[stream]=result
-    except Exception as exc:
-        error=type(exc).__name__ # never leak request headers or credentials
-    finally:
-        if ws is not None:
-            ws.close()
+    raw_types={}
+    errors={}
+    # Probe documented stream endpoints separately. Book-ticker's high
+    # message rate otherwise overwhelms this short read-only diagnostic.
+    for stream in STREAMS:
+        ws=None
+        started=time.monotonic()
+        try:
+            url="wss://fstream.binance.com/market/stream?streams="+stream
+            ws=websocket.create_connection(url,timeout=7,enable_multithread=True,
+                    header={"User-Agent":"WhaleIntelligence-ReadOnly/2"})
+            ws.settimeout(2)
+            while time.monotonic()-started<8:
+                try:
+                    msg=json.loads(ws.recv())
+                except websocket.WebSocketTimeoutException:
+                    continue
+                payload=msg.get("data") if isinstance(msg,dict) else None
+                if isinstance(payload,dict):
+                    key=str(payload.get("e","MISSING"))[:48]
+                    type_count=raw_types.setdefault(stream,{})
+                    type_count[key]=type_count.get(key,0)+1
+                result=validate_event(msg,int(time.time()*1000))
+                if result:
+                    counts[stream]+=1
+                    observed[stream]=result
+                    if counts[stream]>=2:
+                        break
+        except Exception as exc:
+            errors[stream]=type(exc).__name__
+        finally:
+            if ws is not None:
+                ws.close()
     result={
         "testedAt":datetime.now(timezone.utc).isoformat(),
-        "source":"Binance USD-M Futures PUBLIC WebSocket fstream.binance.com",
+        "source":"Binance USD-M Futures PUBLIC WebSocket fstream.binance.com/market/stream",
         "environment":"GitHub Actions",
         "success":all(counts.values()),
-        "observed":observed,"counts":counts,"errorType":error,
+        "observed":observed,"counts":counts,"rawEventTypes":raw_types,"errors":errors,
         "comments":[
             "Verified public events are NOT proof all market datasets are available.",
             "No closed candles expected in short probe; a 15m kline update is not a closed candle.",
