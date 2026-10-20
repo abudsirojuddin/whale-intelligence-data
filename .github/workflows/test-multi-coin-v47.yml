@@ -19,3 +19,9 @@ jobs:
       - name: Verify output structure
         run: |
           python -c "import json; d=json.load(open('market_scan.json')); assert d['assetsChecked']==10; print('V4.7 scan validated:',d['technicalPassCount'],'passes')"
+      - name: Upload scan report for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-coin-scan-v47
+          path: market_scan.json
+          retention-days: 7
