@@ -1,0 +1,59 @@
+name: Intraday V2 End-to-End Data Quality Gate
+
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - ".github/workflows/intraday-data-e2e.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dataset-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned WS library
+        run: python -m pip install websocket-client==1.8.0
+      - name: Validate all source and bridge modules offline
+        run: |
+          python -m py_compile scripts/binance_history_collector.py scripts/binance_live_collector.py scripts/binance_data_bridge.py
+          python scripts/test_binance_history_collector.py
+          python scripts/test_binance_live_collector.py
+          python scripts/test_binance_data_bridge.py
+      - name: Fetch delayed Binance USD-M 14-day BTC candle archive
+        run: python scripts/binance_history_collector.py --symbols BTCUSDT --days 14
+      - name: Capture read-only Binance BTC streaming data (90s)
+        run: python scripts/binance_live_collector.py --seconds 90 --symbols BTCUSDT
+      - name: Bridge archived and live sources; DO NOT generate trades
+        run: python scripts/binance_data_bridge.py
+      - name: Quality gate summary
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('binance_dataset_readiness.json'))
+          assert d['mode']=='PAPER_ONLY' and d['liveOrderReady'] is False
+          assert d['status'] in ('NO_TRADE','RESEARCH_DATA_READY')
+          print('Readiness:',d['status'])
+          print('Per timeframe:',d['quality'])
+          if d['status'] == 'NO_TRADE':
+              print('EXPECTED: archive is delayed and 90s WS sampling cannot fill historical live gap.')
+          PY
+      - name: Upload validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intraday-v2-e2e-quality-${{ github.run_id }}
+          path: |
+            binance_archive_history.json
+            binance_live_candles.json
+            binance_live_diagnostics.json
+            binance_dataset_readiness.json
+          retention-days: 7
