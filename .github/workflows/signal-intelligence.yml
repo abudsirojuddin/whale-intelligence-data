@@ -28,6 +28,7 @@ jobs:
       - name: Analyze rejection reasons and signal funnel
         run: |
           python -m py_compile scripts/signal_diagnostics.py scripts/market_universe.py
+          python scripts/test_signal_diagnostics.py
           python scripts/signal_diagnostics.py
       - name: Assess newest wallet observations and send tiered Telegram research
         env:
