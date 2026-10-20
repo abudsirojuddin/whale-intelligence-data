@@ -119,7 +119,7 @@ def collect(symbols,days,now=None,downloader=fetch_archive):
             contiguous=bool(rows and all(
                 rows[i]["start"]-rows[i-1]["start"]==width
                 for i in range(1,len(rows))))
-            data[name]={"candles":rows[-240:],"count":len(rows),
+            data[name]={"candles":rows[-2000:],"count":len(rows),
                         "contiguous":contiguous,"lastClosedAt":rows[-1]["end"] if rows else None}
     return {"generatedAt":now.isoformat(),"source":"OFFICIAL_BINANCE_USDM_DELAYED_ARCHIVE",
             "liveTradeReady":False,"symbols":list(symbols),
