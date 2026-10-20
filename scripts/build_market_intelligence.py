@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from selection_rules import is_qualified
+from market_universe import RESEARCH_COINS
 
 ROOT=Path(__file__).resolve().parent.parent
 def read(name, default):
@@ -30,7 +31,7 @@ def ema(prices,p):
     return result
 def get_setup(coin,side,now):
     # Only the deepest core markets, to avoid thin altcoin spreads.
-    if coin not in ('BTC','ETH','SOL'): return None
+    if coin not in RESEARCH_COINS: return None
     meta=api({'type':'metaAndAssetCtxs'})
     if not isinstance(meta,list) or len(meta)<2:return None
     universe=meta[0].get('universe',[])
@@ -73,6 +74,9 @@ def get_setup(coin,side,now):
         'expiresAt':iso(now+900)}
 def main():
     now=time.time();state=read('position_state.json',{});ranking=read('ranking.json',{})
+    scan=read('market_scan.json',{})
+    scan_fresh=(0<=now-ts(scan.get('updatedAt'))<=300 and now<=ts(scan.get('expiresAt')) and scan.get('apiHealthy') is True)
+    passes={m.get('coin'):m for m in scan.get('coins',[]) if m.get('status')=='TECHNICAL_PASS'} if scan_fresh else {}
     alerts=read('alerts.json',{});past=read('setups.json',{})
     quality={r['address'].lower():r for r in ranking.get('ranking',[]) if isinstance(r.get('address'),str)}
     totals=defaultdict(lambda:{'longWallets':0,'shortWallets':0,'longNotionalUsd':0,'shortNotionalUsd':0,'qualityLongWallets':0,'qualityShortWallets':0})
@@ -109,17 +113,18 @@ def main():
                   e.get('event') in ('OPEN','INCREASE','REVERSE') and e.get('address','').lower() in cohort
                   and 0<=now-ts(e.get('time'))<=1200 for e in events)
                 if not recent:continue
-                try: levels=get_setup(coin,side,now)
-                except (ValueError,KeyError,TimeoutError,Exception) as exc:
-                    print('Market validation unavailable:',type(exc).__name__);levels=None
-                if levels: setups.append(dict(coin=coin,direction=side,qualifiedWallets=len(cohort),
+                # Only accept a fresh, complete multi-coin scan; do not fall back
+                # to ad-hoc unverified prices or stale cached levels.
+                levels=passes.get(coin,{}).get('paperScenarios',{}).get(side)
+                if levels and 0 < ts(levels.get('expiresAt'))-now <= 900:
+                    setups.append(dict(coin=coin,direction=side,qualifiedWallets=len(cohort),
                         status='CONDITIONAL_RESEARCH_ONLY',**levels))
     notified=past.get('notified',{});notified={k:v for k,v in notified.items() if 0<=now-ts(v)<=172800}
     # Telegram alerts are disabled for proposals until paper-trade evaluation.
     # This prevents a backtested-looking setup being misrepresented as a recommendation.
     result={'updatedAt':iso(now),'status':'SETUPS_AVAILABLE' if setups else 'NO_TRADE',
-        'setups':setups[:2],'notified':notified,'maxRiskPerIdeaIdr':5000,
-        'disclaimer':'Research scenarios only. Telegram trade suggestions withheld until paper-trading validation.'}
+        'setups':setups[:5],'notified':notified,'maxRiskPerIdeaIdr':5000,
+        'disclaimer':'Research scenarios only, using fresh multi-coin technical scan. No trade recommendation until paper-trading validation.'}
     write('market_overview.json',overview);write('setups.json',result)
     print('Assets',len(coins),'eligibleWallets',eligible_count,'paperSetups',len(setups))
 if __name__=='__main__':main()
