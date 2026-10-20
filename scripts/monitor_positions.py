@@ -17,7 +17,7 @@ CANDIDATES = ROOT / "candidates.json"
 STATE = ROOT / "position_state.json"
 ALERTS = ROOT / "alerts.json"
 API = "https://api.hyperliquid.xyz/info"
-WATCH_TOP_N = max(1, min(20, int(os.getenv("WATCH_TOP_N", "10"))))
+WATCH_TOP_N = max(1, min(40, int(os.getenv("WATCH_TOP_N", "20"))))
 MIN_NOTIONAL = max(0, float(os.getenv("MIN_ALERT_NOTIONAL_USD", "10000")))
 MIN_CHANGE = 0.10
 
