@@ -50,11 +50,18 @@ jobs:
           python scripts/test_paper_trading.py
       - name: Register setup immediately and update paper journal
         run: python scripts/paper_trading.py
+      - name: Send new paper-only Telegram notifications
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -m py_compile scripts/notify_paper_setups.py
+          python scripts/notify_paper_setups.py
       - name: Commit research snapshots
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add position_state.json alerts.json market_scan.json market_overview.json setups.json technical_setups.json signal_board.json paper_trades.json paper_performance.json
+          git add position_state.json alerts.json market_scan.json market_overview.json setups.json technical_setups.json signal_board.json paper_trades.json paper_performance.json paper_notification_state.json
           if ! git diff --cached --quiet; then
             git commit -m "data: update whale market overview and research setups [skip ci]"
             git pull --rebase origin main
