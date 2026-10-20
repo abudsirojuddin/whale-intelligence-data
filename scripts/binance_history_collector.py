@@ -119,7 +119,7 @@ def collect(symbols,days,now=None,downloader=fetch_archive):
             contiguous=bool(rows and all(
                 rows[i]["start"]-rows[i-1]["start"]==width
                 for i in range(1,len(rows))))
-            data[name]={"candles":rows[-2000:],"count":len(rows),
+            data[name]={"candles":rows[-5000:],"count":len(rows),
                         "contiguous":contiguous,"lastClosedAt":rows[-1]["end"] if rows else None}
     return {"generatedAt":now.isoformat(),"source":"OFFICIAL_BINANCE_USDM_DELAYED_ARCHIVE",
             "liveTradeReady":False,"symbols":list(symbols),
@@ -131,7 +131,7 @@ def main():
     p.add_argument("--symbols",nargs="+",choices=APPROVED_SYMBOLS,default=["BTCUSDT"])
     p.add_argument("--days",type=int,default=1)
     args=p.parse_args()
-    if not 1<=args.days<=20:raise SystemExit("days must be 1..20")
+    if not 1<=args.days<=35:raise SystemExit("days must be 1..35")
     out=collect(args.symbols,args.days)
     output=ROOT/"binance_archive_history.json"
     output.write_text(json.dumps(out,ensure_ascii=False,separators=(",",":"))+"\n",encoding="utf-8")
