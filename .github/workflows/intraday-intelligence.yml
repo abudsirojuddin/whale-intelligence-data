@@ -1,6 +1,15 @@
 name: Intraday Intelligence V2 Paper Research
 
 on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/intraday_scanner.py"
+      - "scripts/test_intraday_scanner.py"
+      - "scripts/intraday_paper.py"
+      - "scripts/test_intraday_paper.py"
+      - ".github/workflows/intraday-intelligence.yml"
   workflow_dispatch:
   schedule:
     - cron: '2,17,32,47 * * * *'
@@ -9,13 +18,13 @@ permissions:
   contents: write
 
 concurrency:
-  group: intraday-paper-research
+  group: intraday-paper-research-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,11 +36,20 @@ jobs:
           python scripts/test_intraday_scanner.py
       - name: Binance Futures paper-only intraday scan
         env:
-          ENABLE_INTRADAY_PAPER_ALERTS: ${{ vars.ENABLE_INTRADAY_PAPER_ALERTS }}
+          ENABLE_INTRADAY_PAPER_ALERTS: ${{ github.ref == 'refs/heads/main' && vars.ENABLE_INTRADAY_PAPER_ALERTS || 'false' }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python scripts/intraday_scanner.py
-      - name: Persist paper research output
+      - name: Upload research diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: intraday-diagnostic-${{ github.run_id }}
+          path: |
+            intraday_scan.json
+            intraday_signals.json
+          retention-days: 7
+      - name: Persist paper research output (default branch only)
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
