@@ -1,0 +1,29 @@
+name: Binance V2 Signal Safety Gate Check
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/intraday_alert_gate.py"
+      - "scripts/test_intraday_alert_gate.py"
+      - "scripts/test_intraday_alert_cadence.py"
+      - ".github/workflows/binance-v2-alert-gate.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate no signal without verified Binance Futures prices
+        run: |
+          python -m py_compile scripts/intraday_alert_gate.py scripts/test_intraday_alert_gate.py
+          python scripts/test_intraday_alert_gate.py
+          python scripts/test_intraday_alert_cadence.py
+      - name: Preview current gate without Telegram delivery
+        run: python scripts/intraday_alert_gate.py --dry-run

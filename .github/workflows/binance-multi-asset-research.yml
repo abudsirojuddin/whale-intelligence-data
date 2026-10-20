@@ -1,0 +1,39 @@
+name: Binance Multi-Asset Historical Research
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/intraday_multi_asset_research.py"
+      - "scripts/test_intraday_multi_asset_research.py"
+      - ".github/workflows/binance-multi-asset-research.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  historical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify research releases blocked when incomplete
+        run: |
+          python -m py_compile scripts/intraday_multi_asset_research.py scripts/test_intraday_multi_asset_research.py
+          python scripts/test_intraday_multi_asset_research.py
+          python scripts/test_intraday_historical_diagnostic.py
+      - name: Get official delayed Binance Futures candles, BTC ETH SOL 30 days
+        run: python scripts/binance_history_collector.py --symbols BTCUSDT ETHUSDT SOLUSDT --days 30
+      - name: Evaluate each symbol and each technical strategy independently
+        run: python scripts/intraday_multi_asset_research.py
+      - name: Save reports without production publication
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-asset-research-${{ github.run_id }}
+          path: |
+            intraday_multi_asset_research.json
+            intraday_multi_asset_research.md
+          retention-days: 14

@@ -1,0 +1,34 @@
+name: Binance V2 End-to-End Intraday Gate
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/intraday_market_engine.py"
+      - "scripts/test_intraday_market_engine.py"
+      - ".github/workflows/binance-intraday-integration.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate fail-closed Binance Futures data integration
+        run: |
+          python -m py_compile scripts/intraday_market_engine.py scripts/test_intraday_market_engine.py
+          python scripts/test_intraday_market_engine.py
+      - name: Generate diagnostic only, no Telegram sending
+        run: python scripts/intraday_market_engine.py
+      - name: Upload readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: intraday-integration-${{ github.run_id }}
+          path: intraday_scan.json
+          retention-days: 7

@@ -1,0 +1,27 @@
+name: Intraday Telegram Safe Notification Preview
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/intraday_telegram_status.py"
+      - "scripts/test_intraday_telegram_status.py"
+      - ".github/workflows/intraday-telegram-preview.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline message and safety tests
+        run: |
+          python -m py_compile scripts/intraday_telegram_status.py scripts/test_intraday_telegram_status.py
+          python scripts/test_intraday_telegram_status.py
+      - name: Build a NO-TRADE Telegram preview (no real sending)
+        run: python scripts/intraday_telegram_status.py --mode preview
