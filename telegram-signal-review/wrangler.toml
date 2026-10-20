@@ -1,0 +1,15 @@
+name = "whale-telegram-review-v2"
+main = "worker.mjs"
+compatibility_date = "2026-10-20"
+workers_dev = true
+
+# Add a NEW D1 database ID after creating it in Cloudflare.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "whale-telegram-review-v2"
+# database_id = "REPLACE_WITH_YOUR_NEW_D1_DATABASE_ID"
+
+# Required Cloudflare secrets (never commit values):
+# TELEGRAM_BOT_TOKEN
+# TELEGRAM_CHAT_ID
+# TELEGRAM_WEBHOOK_SECRET
