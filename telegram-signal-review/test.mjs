@@ -1,0 +1,21 @@
+import {parseCaption,interpretUpdate,assess,replyText} from "./core.mjs";
+const pass=(condition,message)=>{if(!condition)throw Error(message)};
+const now=Date.now();
+const caption="ENAUSDT LONG\nENTRY 0.189 - 0.194\nSL under 0.182\nTP 0.208++";
+const parsed=parseCaption(caption);
+pass(parsed.status==="PARSED"&&parsed.symbol==="ENAUSDT"&&parsed.stopIsBoundary,"caption");
+const payload={update_id:91,message:{date:Math.floor(now/1000),chat:{type:"private",id:123},
+photo:[{file_id:"photo-id"}],caption}};
+const result=interpretUpdate(payload,"123",Math.floor(now/1000));
+pass(result.status==="PARSED"&&result.hasImage&&!result.autoTrade,"photo-caption");
+pass(interpretUpdate(payload,"456",Math.floor(now/1000)).status==="IGNORE","allowlist");
+pass(interpretUpdate({...payload,message:{...payload.message,forward_origin:{date:Math.floor(now/1000)-7*3600}}},"123",Math.floor(now/1000)).status==="STALE","stale");
+pass(interpretUpdate({...payload,message:{...payload.message,caption:""}},"123",Math.floor(now/1000)).status==="NEEDS_CAPTION","empty caption");
+pass(parseCaption("BTCUSDT LONG ENTRY 100 - 101 SL 98 TP 120").status==="PARSED","BTC");
+pass(parseCaption("BTCUSDT LONG ENTRY 100 - 101 SL 98 TP 120 ETHUSDT").status==="INCOMPLETE","ambiguous");
+const quote={source:"BINANCE_USDM_FUTURES",symbol:"ENAUSDT",price:0.19706,atMs:now};
+const review=assess(parsed,quote,now);
+pass(review.decision==="JANGAN_KEJAR_ENTRY"&&!review.tradeReady,"chase");
+pass(assess(parsed,{...quote,atMs:now-120000},now).decision==="HARGA_BINANCE_BELUM_TERVERIFIKASI","stale price");
+pass(replyText(result,review).includes("JANGAN_KEJAR_ENTRY"),"reply");
+console.log("PASS: photo-caption parser, human-only review, chat allowlist, stale guards");
