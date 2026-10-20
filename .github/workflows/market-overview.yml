@@ -56,6 +56,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python -m py_compile scripts/notify_paper_setups.py
+          python scripts/test_notify_paper_setups.py
           python scripts/notify_paper_setups.py
       - name: Commit research snapshots
         run: |
