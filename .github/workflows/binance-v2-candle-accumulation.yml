@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/binance-v2-candle-accumulation.yml'
+      - 'scripts/binance_live_collector.py'
+      - 'scripts/binance_candle_rollup.py'
   workflow_dispatch:
   schedule:
     - cron: '12,27,42,57 * * * *'
