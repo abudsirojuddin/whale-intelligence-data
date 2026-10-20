@@ -172,7 +172,7 @@ def main():
     p.add_argument("--seconds",type=int,default=75)
     p.add_argument("--symbols",nargs="+",choices=SYMBOLS,default=list(SYMBOLS))
     args=p.parse_args()
-    if not 3<=args.seconds<=140:raise SystemExit("seconds must be 3..140")
+    if not 3<=args.seconds<=260:raise SystemExit("seconds must be 3..260")
     if len(set(args.symbols))!=len(args.symbols):raise SystemExit("duplicate symbols")
     run(args.seconds,tuple(args.symbols))
 
