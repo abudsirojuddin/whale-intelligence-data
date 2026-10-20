@@ -177,7 +177,9 @@ def main():
     setups=read("setups.json",{})
     perf=read("paper_performance.json",{})
     opportunities, eligible, consensus=opportunity_events(alerts,position,ranking,timestamp)
-    paper_ok=paper_has_edge(perf)
+    # Never approve whale alerts from pooled results of an unrelated strategy.
+    # Pre-V4.8 journals without independent metrics deliberately fail closed.
+    paper_ok=paper_has_edge(perf.get('byStrategy',{}).get('WHALE_CONSENSUS',{}))
     stamp=local_day(timestamp)
     sent={key:value for key,value in state.get("sent",{}).items() if
           0<=timestamp-time_of(value.get("sentAt"))<=3*86400}
