@@ -45,6 +45,38 @@ def simulate(bars,i,side,risk):
     net_r=sign*(exit_price-entry)/risk
     return {"outcome":outcome,"netR":round(net_r,4)}
 
+def performance(rows):
+    """Descriptive historical-paper statistics, NOT a forecast or a trade gate."""
+    ordered=sorted(rows,key=lambda x:x["signalCandleEndMs"])
+    values=[x["netR"] for x in ordered]
+    if not values:
+        return {"closed":0,"winRate":None,"meanNetR":None,"profitFactor":None,
+                "maxDrawdownR":None,"netTotalR":0}
+    gain=sum(x for x in values if x>0)
+    loss=-sum(x for x in values if x<0)
+    peak=equity=drawdown=0.0
+    for r in values:
+        equity+=r
+        peak=max(peak,equity)
+        drawdown=max(drawdown,peak-equity)
+    return {"closed":len(values),"winRate":round(sum(x>0 for x in values)/len(values),4),
+            "meanNetR":round(sum(values)/len(values),4),
+            "profitFactor":round(gain/loss,4) if loss>0 else None,
+            "maxDrawdownR":round(drawdown,4),"netTotalR":round(sum(values),4)}
+
+
+def partition_summary(rows,start_ms,end_ms):
+    """Predeclared chronological 70/30 holdout; NOT independent live evidence."""
+    divider=start_ms+int((end_ms-start_ms)*.7)
+    train=[r for r in rows if r["signalCandleEndMs"]<divider]
+    holdout=[r for r in rows if r["signalCandleEndMs"]>=divider]
+    return {"splitRule":"70/30 elapsed evaluation time, no tuning",
+            "holdoutStartsAtMs":divider,
+            "developmentPeriod":performance(train),
+            "untouchedTimeHoldout":performance(holdout),
+            "warning":"Parameters were not tuned in this evaluation; future tuning on the holdout invalidates its independence."}
+
+
 def evaluate(dataset,symbol="BTCUSDT"):
     assert dataset.get("source")=="OFFICIAL_BINANCE_USDM_DELAYED_ARCHIVE"
     data=dataset.get("datasets",{})
@@ -101,21 +133,30 @@ def evaluate(dataset,symbol="BTCUSDT"):
             rejection[reason]=rejection.get(reason,0)+1
         except (ValueError,KeyError,IndexError,ZeroDivisionError):
             rejection["INDICATOR_ERROR"]=rejection.get("INDICATOR_ERROR",0)+1
-    net=[r["netR"] for r in rows]
-    wins=sum(v>0 for v in net)
-    positive=sum(v for v in net if v>0)
-    negative=-sum(v for v in net if v<0)
+    overall=performance(rows)
+    patterns=sorted(set(r["pattern"] for r in rows) | {"TREND_PULLBACK","BREAKOUT_RETEST"})
+    by_pattern={name:performance([r for r in rows if r["pattern"]==name]) for name in patterns}
+    by_direction={name:performance([r for r in rows if r["side"]==name]) for name in ("LONG","SHORT")}
+    first_eval=candles[220]["end"] if len(candles)>220 else candles[0]["end"]
+    last_eval=candles[max(220,len(candles)-HOLD_BARS-1)]["end"]
+    holdout=partition_summary(rows,first_eval,last_eval)
     return {"status":"HISTORICAL_TECHNICAL_ONLY",
         "symbol":symbol,"evaluatedCandles":len(candles),
-        "completedPaperPatterns":len(rows),"wins":wins,
-        "winRate":round(wins/len(net),4) if net else None,
-        "meanNetR":round(sum(net)/len(net),4) if net else None,
-        "profitFactor":round(positive/negative,4) if negative else None,
-        "rejections":rejection,"examples":rows[-15:],
+        "samplePeriod":{"firstCandleMs":candles[0]["start"],"lastCandleMs":candles[-1]["end"]},
+        "closedTrades":overall["closed"],"completedPaperPatterns":overall["closed"],
+        "wins":sum(x["netR"]>0 for x in rows),
+        "winRate":overall["winRate"],"meanNetR":overall["meanNetR"],
+        "profitFactor":overall["profitFactor"],"maxDrawdownR":overall["maxDrawdownR"],
+        "overall":overall,"byPattern":by_pattern,"byDirection":by_direction,
+        "chronologicalHoldout":holdout,"rejections":rejection,"examples":rows[-15:],
+        "minimumSampleForPreliminaryReview":100,
+        "hasMinimumSample":overall["closed"]>=100,
         "tradeReady":False,
+        "assumptions":{"entry":"next 15-minute open","feeAndSlippagePerSide":COST_PER_SIDE,
+                       "maxHoldBars":HOLD_BARS,"sameCandleStopTarget":"STOP_FIRST"},
         "missingCriticalInputs":["historical executable spread","funding","open interest",
                                  "realtime close-to-alert delay","liquidation/margin simulation"],
-        "disclaimer":"Historical pattern diagnostic, NOT a valid live-signal win-rate claim."}
+        "disclaimer":"Technical-pattern historical simulation only, neither fully validated backtest nor live trading edge."}
 
 def main():
     source=ROOT/"binance_archive_history.json"
@@ -126,7 +167,8 @@ def main():
     (ROOT/"intraday_historical_diagnostic.json").write_text(
         json.dumps(result,ensure_ascii=False,indent=2)+"\n","utf-8")
     print(json.dumps({k:result.get(k) for k in ("status","completedPaperPatterns",
-          "meanNetR","tradeReady","missingCriticalInputs")},ensure_ascii=False))
+          "winRate","meanNetR","profitFactor","hasMinimumSample","tradeReady","byPattern",
+          "chronologicalHoldout","rejections","missingCriticalInputs")},ensure_ascii=False))
 
 if __name__=="__main__":
     main()
