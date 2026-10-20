@@ -3,7 +3,7 @@ name: Binance V2 Closed Candle Accumulation (Paper Only)
 on:
   workflow_dispatch:
   schedule:
-    - cron: '13,28,43,58 * * * *'
+    - cron: '14,29,44,59 * * * *'
 
 permissions:
   contents: write
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   record:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,7 +28,7 @@ jobs:
           python -m py_compile scripts/binance_live_collector.py scripts/test_binance_live_collector.py
           python scripts/test_binance_live_collector.py
       - name: Sample Binance Futures closed candles — NO ALERTS
-        run: python scripts/binance_live_collector.py --seconds 110 --symbols BTCUSDT ETHUSDT SOLUSDT
+        run: python scripts/binance_live_collector.py --seconds 135 --symbols BTCUSDT ETHUSDT SOLUSDT
       - name: Save verified observations without modifying V1 workflows
         run: |
           git config user.name "github-actions[bot]"
