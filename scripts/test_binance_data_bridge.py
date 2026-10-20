@@ -10,7 +10,7 @@ for interval,width in m.INTERVAL_MS.items():
     assert m.join_series(rows[:-5],rows[-5:],interval,now)["status"]=="READY"
     assert m.join_series(rows[:-6],rows[-5:],interval,now)["status"]=="MISSING_CANDLES"
     assert m.join_series(rows[:20],[],interval,now)["status"]=="INSUFFICIENT_HISTORY"
-    modified=[dict(rows[-5],close=200.)]+rows[-4:]
+    modified=[dict(rows[-5],close=100.5)]+rows[-4:]
     assert m.join_series(rows,modified,interval,now)["status"]=="CONFLICTING_OVERLAP"
     assert m.join_series(rows[:-5],[],interval,now)["status"]=="STALE_LAST_CANDLE"
     assert m.join_series(rows[:-5],[dict(rows[-5],end=rows[-5]["end"]+100)],interval,now)["status"]=="INVALID_CLOSED_CANDLE"
