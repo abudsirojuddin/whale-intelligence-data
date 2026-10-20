@@ -1,0 +1,36 @@
+name: Binance Futures Mark Funding and Book Quality Pilot
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/binance_derivatives_snapshot.py"
+      - "scripts/test_binance_derivatives_snapshot.py"
+      - ".github/workflows/binance-derivatives-pilot.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned WS client
+        run: python -m pip install websocket-client==1.8.0
+      - name: Verify fail-closed marker tests
+        run: |
+          python -m py_compile scripts/binance_derivatives_snapshot.py scripts/test_binance_derivatives_snapshot.py
+          python scripts/test_binance_derivatives_snapshot.py
+      - name: Probe actual Futures public streams
+        run: python scripts/binance_derivatives_snapshot.py
+      - name: Save diagnostic, no production update
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binance-context-${{ github.run_id }}
+          path: binance_live_market_context.json
+          retention-days: 7
