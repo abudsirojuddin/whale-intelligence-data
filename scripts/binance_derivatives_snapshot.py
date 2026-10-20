@@ -107,7 +107,9 @@ def assemble(marks,books,now_ms):
         if not(0<=now_ms-mark["eventTimeMs"]<=MAX_AGE_MS and
                0<=now_ms-book["eventTimeMs"]<=MAX_AGE_MS):
             continue
-        by_symbol[sym]={**mark,**book}
+        by_symbol[sym]={**mark,**book,
+                        "markEventTimeMs":mark["eventTimeMs"],
+                        "bookEventTimeMs":book["eventTimeMs"]}
     return {"capturedAt":datetime.fromtimestamp(now_ms/1000,timezone.utc).isoformat(),
         "source":"BINANCE_USDM_PUBLIC_MARK_AND_BOOK_WEBSOCKET",
         "market":"Binance USD-M sampled symbols, market-data research",
