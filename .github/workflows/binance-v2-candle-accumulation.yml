@@ -1,6 +1,10 @@
 name: Binance V2 Closed Candle Accumulation (Paper Only)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/binance-v2-candle-accumulation.yml'
   workflow_dispatch:
   schedule:
     - cron: '14,29,44,59 * * * *'
