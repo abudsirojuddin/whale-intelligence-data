@@ -118,38 +118,72 @@ def run(seconds, symbols=SYMBOLS, websocket_module=None):
     streams=[s.lower()+"@kline_"+interval for s in symbols for interval in PERIOD]
     # Max 9 symbols/channels on a single official market WebSocket request.
     url="wss://fstream.binance.com/market/stream?streams="+"/".join(streams)
+    opened_at=time.time()
+    next_boundary_ms=(int(opened_at*1000)//PERIOD["15m"]+1)*PERIOD["15m"]
+    seconds_until_boundary=(next_boundary_ms/1000)-opened_at
+    # A GitHub scheduled job may start late. If the next close would occur
+    # after our bounded session, report misalignment rather than 'success'.
+    covers_boundary=(seconds_until_boundary+12 <= seconds)
     report={"checkedAt":now_iso(),"liveBrokerExecutable":False,
             "source":"BINANCE_USDM_PUBLIC_WEBSOCKET","secondsRequested":seconds,
+            "next15mBoundaryMs":next_boundary_ms,
+            "secondsUntilBoundaryAtStart":round(seconds_until_boundary,2),
+            "runCoversNext15mBoundary":covers_boundary,
             "eventCounts":{"received":0,"closed":0,"invalidOrOpen":0},
+            "klineUpdatesByFrame":{},"finalEventsByFrame":{},
             "writes":{"APPENDED":0,"GAP_DETECTED":0,"DUPLICATE":0,
                       "CONFLICT":0,"OLD_EVENT":0},
             "errors":[],"quality":{}}
     ws=None
     start=time.monotonic()
-    try:
-        ws=ws_module.create_connection(url,timeout=8,enable_multithread=True)
-        ws.settimeout(3)
-        while time.monotonic()-start<seconds:
-            try:
-                event=json.loads(ws.recv())
-                report["eventCounts"]["received"]+=1
-            except ws_module.WebSocketTimeoutException:
-                continue
-            except (ValueError,TypeError) as exc:
-                report["errors"].append(type(exc).__name__)
-                continue
-            parsed=parse_closed_kline(event,int(time.time()*1000))
-            if parsed is None:
-                report["eventCounts"]["invalidOrOpen"]+=1
-                continue
-            report["eventCounts"]["closed"]+=1
-            action=append_closed(state,parsed)
-            report["writes"][action]+=1
-    except Exception as exc:
-        report["errors"].append(type(exc).__name__)
-    finally:
-        if ws:
-            ws.close()
+    final15m_symbols=set()
+    settle_deadline=None
+    if covers_boundary:
+        try:
+            ws=ws_module.create_connection(url,timeout=8,enable_multithread=True)
+            ws.settimeout(2)
+            while time.monotonic()-start<seconds:
+                try:
+                    event=json.loads(ws.recv())
+                    report["eventCounts"]["received"]+=1
+                except ws_module.WebSocketTimeoutException:
+                    if settle_deadline and time.monotonic()>=settle_deadline:
+                        break
+                    continue
+                except (ValueError,TypeError) as exc:
+                    report["errors"].append(type(exc).__name__)
+                    continue
+                data=event.get("data") if isinstance(event,dict) else None
+                k=data.get("k") if isinstance(data,dict) else None
+                if isinstance(k,dict) and data.get("e")=="kline":
+                    key=str(data.get("s"))+":"+str(k.get("i"))
+                    counts=report["klineUpdatesByFrame"]
+                    counts[key]=counts.get(key,0)+1
+                    if k.get("x") is True:
+                        finals=report["finalEventsByFrame"]
+                        finals[key]=finals.get(key,0)+1
+                parsed=parse_closed_kline(event,int(time.time()*1000))
+                if parsed is None:
+                    report["eventCounts"]["invalidOrOpen"]+=1
+                    continue
+                report["eventCounts"]["closed"]+=1
+                action=append_closed(state,parsed)
+                report["writes"][action]+=1
+                if parsed["interval"]=="15m" and parsed["end"]==next_boundary_ms-1:
+                    final15m_symbols.add(parsed["symbol"])
+                    if len(final15m_symbols)==len(symbols) and settle_deadline is None:
+                        # Capture any simultaneous 1h/4h finals, then stop
+                        # instead of wasting the entire four-minute budget.
+                        settle_deadline=time.monotonic()+7
+                if settle_deadline and time.monotonic()>=settle_deadline:
+                    break
+        except Exception as exc:
+            report["errors"].append(type(exc).__name__)
+        finally:
+            if ws:
+                ws.close()
+    else:
+        report["errors"].append("MISSED_15M_BOUNDARY_WINDOW")
     now_ms=int(time.time()*1000)
     for symbol in symbols:
         for interval in PERIOD:
@@ -157,11 +191,23 @@ def run(seconds, symbols=SYMBOLS, websocket_module=None):
             report["quality"][key]=series_quality(state["series"].get(key,[]),
                                                    interval,now_ms)
     report["readyForTechnicalAnalysis"]=all(v=="READY" for v in report["quality"].values())
+    report["closed15mPairsAtTarget"]=sorted(final15m_symbols)
+    if not covers_boundary:
+        report["status"]="MISSED_SCHEDULE_WINDOW"
+    elif report["errors"]:
+        report["status"]="DATA_COLLECTION_ERROR"
+    elif len(final15m_symbols)<len(symbols):
+        report["status"]="MISSED_FINAL_CANDLE"
+    else:
+        report["status"]="FINAL_15M_CANDLES_RECORDED"
     report["finishedAt"]=now_iso()
     # State is always paper research, even if all feeds are healthy.
     STATE.write_text(json.dumps(state,ensure_ascii=False,separators=(",",":"))+"\n","utf-8")
     DIAGNOSTICS.write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n","utf-8")
-    print(json.dumps({"closedEvents":report["eventCounts"]["closed"],
+    print(json.dumps({"status":report["status"],
+                      "closedEvents":report["eventCounts"]["closed"],
+                      "targetPairs":report["closed15mPairsAtTarget"],
+                      "finalEventsByFrame":report["finalEventsByFrame"],
                       "dataQuality":report["quality"],
                       "readyForTechnicalAnalysis":report["readyForTechnicalAnalysis"],
                       "errors":report["errors"]}))
@@ -174,6 +220,8 @@ def main():
     args=p.parse_args()
     if not 3<=args.seconds<=260:raise SystemExit("seconds must be 3..260")
     if len(set(args.symbols))!=len(args.symbols):raise SystemExit("duplicate symbols")
-    run(args.seconds,tuple(args.symbols))
+    result=run(args.seconds,tuple(args.symbols))
+    if result["status"] in ("MISSED_FINAL_CANDLE","DATA_COLLECTION_ERROR"):
+        raise SystemExit("VERIFIED_BOUNDARY_MISSED_OR_STREAM_ERROR")
 
 if __name__=="__main__":main()
