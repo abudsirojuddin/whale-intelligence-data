@@ -105,7 +105,7 @@ def main():
     setups=[];events=alerts.get('events',[])
     if not stale:
         for coin,sides in consensus.items():
-            if coin not in ('BTC','ETH','SOL'):continue
+            if coin not in RESEARCH_COINS:continue
             for side in ('LONG','SHORT'):
                 cohort=sides[side]
                 if len(cohort)<2 or len(cohort)/max(1,len(sides['LONG']|sides['SHORT']))<.7:continue
