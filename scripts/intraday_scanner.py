@@ -63,7 +63,7 @@ def get_json(path, params=None, retries=2):
                 return json.loads(response.read(5_000_000))
         except urllib.error.HTTPError as exc:
             if exc.code not in (418, 429, 500, 502, 503, 504) or attempt == retries:
-                raise
+                raise RuntimeError(f"BINANCE_HTTP_{exc.code}_AT_{path}") from exc
         except (TimeoutError, urllib.error.URLError, ValueError):
             if attempt == retries:
                 raise
@@ -350,16 +350,16 @@ def main():
                     status["newSignals"].append(signal)
                     sent[signal["id"]] = {"at": now, "notified": False}
                     history.append(signal)
-            except (ValueError, KeyError, TypeError, IndexError, urllib.error.HTTPError,
+            except (ValueError, KeyError, TypeError, IndexError, RuntimeError, urllib.error.HTTPError,
                     urllib.error.URLError, TimeoutError, OSError) as exc:
                 why = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
                 status["rejectionCounts"][why] = status["rejectionCounts"].get(why, 0) + 1
         if status["newSignals"]:
             status["status"] = "PAPER_SETUPS_FOUND"
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, RuntimeError, OSError) as exc:
         status["status"] = "DATA_UNAVAILABLE"
-        status["error"] = "BINANCE_API_UNAVAILABLE" if not isinstance(exc, ValueError) else "INVALID_METADATA"
-        print("Fail closed: Binance data unavailable", type(exc).__name__)
+        status["error"] = str(exc)[:100] if isinstance(exc, RuntimeError) else ("INVALID_METADATA" if isinstance(exc, ValueError) else "BINANCE_API_UNAVAILABLE")
+        print("Fail closed: Binance data unavailable", status["error"])
     day = datetime.fromtimestamp(now, timezone(timedelta(hours=7))).date().isoformat()
     # Up to five paper research notifications each Jakarta day. No quota to fill.
     notices = sum(1 for v in sent.values() if v.get("notified")
