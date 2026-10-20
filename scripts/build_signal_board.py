@@ -37,7 +37,9 @@ def load(name,default):
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else default
 def make(scan,overview,technical,whales,now):
     updated=when(scan.get("updatedAt"))
-    source_healthy=scan.get("apiHealthy") is True and 0<=now-updated<=20*60
+    source_expires=when(scan.get("expiresAt"))
+    source_healthy=(scan.get("apiHealthy") is True and
+        0<=now-updated<=5*60 and now<source_expires)
     totals={str(r.get("coin")):r for r in overview.get("coins",[]) if isinstance(r,dict)}
     proposals={}
     for strategy,doc in (("TECHNICAL_MOMENTUM",technical),("WHALE_CONSENSUS",whales)):
@@ -96,9 +98,9 @@ def make(scan,overview,technical,whales,now):
         })
     rows.sort(key=lambda r:(r["tier"]=="PAPER_ONLY",r["rankScore"],r["volume24hUsd"]),reverse=True)
     result={
-      "version":"4.9","updatedAt":iso(now),"marketScanAt":scan.get("updatedAt"),
+      "version":"5.0","updatedAt":iso(now),"marketScanAt":scan.get("updatedAt"),
       "watchlistFresh":source_healthy,
-      "expiresAt":iso(min(now+20*60,updated+20*60)) if source_healthy else None,
+      "expiresAt":iso(min(now+5*60,source_expires)) if source_healthy else None,
       "targetWatchCount":5,"actualWatchCount":min(len(rows),5),
       "paperOnlyCount":sum(x["tier"]=="PAPER_ONLY" for x in rows[:5]),
       "readyForLiveExecutionCount":0,
