@@ -1,0 +1,33 @@
+name: Binance Archive Live Bridge Quality Tests
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/binance_data_bridge.py"
+      - "scripts/test_binance_data_bridge.py"
+      - ".github/workflows/binance-data-bridge.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate fail-closed continuity bridge
+        run: |
+          python -m py_compile scripts/binance_data_bridge.py scripts/test_binance_data_bridge.py
+          python scripts/test_binance_data_bridge.py
+      - name: Print current dataset readiness, never signals
+        run: python scripts/binance_data_bridge.py
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: binance-dataset-readiness-${{ github.run_id }}
+          path: binance_dataset_readiness.json
+          retention-days: 7
