@@ -1,0 +1,24 @@
+name: Telegram Captioned Signal Intake Offline Tests
+on:
+  push:
+    branches: [feature/intraday-intelligence-v2-20261020]
+    paths:
+      - 'scripts/telegram_signal_ingest.py'
+      - 'scripts/test_telegram_signal_ingest.py'
+      - '.github/workflows/telegram-caption-intake-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test image-caption intake and privacy
+        run: |
+          python -m py_compile scripts/external_signal_validator.py scripts/telegram_signal_ingest.py scripts/test_telegram_signal_ingest.py
+          python scripts/test_telegram_signal_ingest.py
