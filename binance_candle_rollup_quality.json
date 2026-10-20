@@ -1,0 +1,72 @@
+{
+  "updatedAt": "2026-10-20T14:03:37.077000+00:00",
+  "source": "BINANCE_USDM_PUBLIC_WEBSOCKET",
+  "mode": "PAPER_ONLY",
+  "tradeReady": false,
+  "status": "NO_TRADE",
+  "timeframes": {
+    "BTCUSDT:1h": {
+      "status": "WARMING_UP",
+      "derivedClosedCandles": 0,
+      "lastClosedAtMs": null,
+      "fresh": false,
+      "issues": [],
+      "matchingNative": 0,
+      "conflictingNative": 0,
+      "conflictStarts": []
+    },
+    "BTCUSDT:4h": {
+      "status": "WARMING_UP",
+      "derivedClosedCandles": 0,
+      "lastClosedAtMs": null,
+      "fresh": false,
+      "issues": [],
+      "matchingNative": 0,
+      "conflictingNative": 0,
+      "conflictStarts": []
+    },
+    "ETHUSDT:1h": {
+      "status": "WARMING_UP",
+      "derivedClosedCandles": 0,
+      "lastClosedAtMs": null,
+      "fresh": false,
+      "issues": [],
+      "matchingNative": 0,
+      "conflictingNative": 0,
+      "conflictStarts": []
+    },
+    "ETHUSDT:4h": {
+      "status": "WARMING_UP",
+      "derivedClosedCandles": 0,
+      "lastClosedAtMs": null,
+      "fresh": false,
+      "issues": [],
+      "matchingNative": 0,
+      "conflictingNative": 0,
+      "conflictStarts": []
+    },
+    "SOLUSDT:1h": {
+      "status": "WARMING_UP",
+      "derivedClosedCandles": 0,
+      "lastClosedAtMs": null,
+      "fresh": false,
+      "issues": [],
+      "matchingNative": 0,
+      "conflictingNative": 0,
+      "conflictStarts": []
+    },
+    "SOLUSDT:4h": {
+      "status": "WARMING_UP",
+      "derivedClosedCandles": 0,
+      "lastClosedAtMs": null,
+      "fresh": false,
+      "issues": [],
+      "matchingNative": 0,
+      "conflictingNative": 0,
+      "conflictStarts": []
+    }
+  },
+  "warnings": [
+    "Do not publish a trading signal from incomplete or mismatched market data."
+  ]
+}
