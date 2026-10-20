@@ -15,6 +15,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 LEDGER = ROOT / "paper_trades.json"
 PERFORMANCE = ROOT / "paper_performance.json"
 SETUPS = ROOT / "setups.json"
+TECHNICAL_SETUPS = ROOT / "technical_setups.json"
 API = "https://api.hyperliquid.xyz/info"
 MAX_HISTORY_SECONDS = 8 * 3600
 MAX_HOLD_SECONDS = 6 * 3600
@@ -71,17 +72,19 @@ def register(ledger, setups, now):
     ids = {x["id"] for x in ledger}
     added = 0
     for s in setups["setups"]:
+        strategy = s.get("strategy", "WHALE_CONSENSUS")
+        if strategy not in ("WHALE_CONSENSUS", "TECHNICAL_MOMENTUM"): continue
         coin, side = s.get("coin"), s.get("direction")
         if coin not in RESEARCH_COINS or side not in ("LONG","SHORT"): continue
-        uid = f"{int(stamp*1000)}:{coin}:{side}"
+        uid = f"{int(stamp*1000)}:{coin}:{side}:{strategy}"
         if uid in ids: continue
         deadline = when(s.get("expiresAt"))
         lo, hi = num(s.get("entryZoneLow")),num(s.get("entryZoneHigh"))
         stop,tp,mark=num(s.get("stopLoss")),num(s.get("takeProfit1")),num(s.get("markPrice"))
         if not (stamp < deadline <= stamp+1200 and 0<lo<hi and mark>0): continue
         if not (stop<lo<hi<tp if side=="LONG" else tp<lo<hi<stop):continue
-        if any(x["coin"]==coin and x["status"] in ("WAITING_ENTRY","OPEN") for x in ledger):continue
-        ledger.append({"id":uid,"coin":coin,"side":side,"status":"WAITING_ENTRY",
+        if any(x["coin"]==coin and x.get("strategy","WHALE_CONSENSUS")==strategy and x["status"] in ("WAITING_ENTRY","OPEN") for x in ledger):continue
+        ledger.append({"id":uid,"coin":coin,"side":side,"strategy":strategy,"status":"WAITING_ENTRY",
             "sourceCreatedAt":iso(stamp),"firstSeenAt":iso(now),"expiresAt":iso(deadline),
             "entryZoneLow":lo,"entryZoneHigh":hi,"stopLoss":stop,"takeProfit":tp,
             "suggestedMarkPrice":mark,"lastBarEndMs":0,
@@ -200,6 +203,7 @@ def main():
     trades=journal.get("trades",[])
     if not isinstance(trades,list): raise ValueError("Invalid paper ledger")
     added=register(trades,read(SETUPS,{"status":"NO_TRADE"}),now)
+    added+=register(trades,read(TECHNICAL_SETUPS,{"status":"NO_TRADE"}),now)
     grouped=defaultdict(list)
     for t in trades:
         if t.get("status") in ("WAITING_ENTRY","OPEN"):
@@ -226,6 +230,7 @@ def main():
     save(LEDGER,{"updatedAt":iso(now),"version":"4.3","newSetups":added,"trades":trades,
         "disclaimer":"Forward-looking PAPER research only, not verified broker executions."})
     summary=report(trades,now)
+    summary["byStrategy"]={name:report([t for t in trades if t.get("strategy","WHALE_CONSENSUS")==name],now) for name in ("WHALE_CONSENSUS","TECHNICAL_MOMENTUM")}
     save(PERFORMANCE,summary)
     print("New:",added,"open:",summary["openTrades"],"closed 90d:",summary["metrics90d"]["closed"],
           "quality:",summary["status"])
