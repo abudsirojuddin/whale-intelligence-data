@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-20T13:54:51.615343+00:00",
+  "liveBrokerExecutable": false,
+  "source": "BINANCE_USDM_PUBLIC_WEBSOCKET",
+  "secondsRequested": 135,
+  "eventCounts": {
+    "received": 2845,
+    "closed": 0,
+    "invalidOrOpen": 2845
+  },
+  "writes": {
+    "APPENDED": 0,
+    "GAP_DETECTED": 0,
+    "DUPLICATE": 0,
+    "CONFLICT": 0,
+    "OLD_EVENT": 0
+  },
+  "errors": [],
+  "quality": {
+    "BTCUSDT:15m": "WARMING_UP",
+    "BTCUSDT:1h": "WARMING_UP",
+    "BTCUSDT:4h": "WARMING_UP",
+    "ETHUSDT:15m": "WARMING_UP",
+    "ETHUSDT:1h": "WARMING_UP",
+    "ETHUSDT:4h": "WARMING_UP",
+    "SOLUSDT:15m": "WARMING_UP",
+    "SOLUSDT:1h": "WARMING_UP",
+    "SOLUSDT:4h": "WARMING_UP"
+  },
+  "readyForTechnicalAnalysis": false,
+  "finishedAt": "2026-10-20T13:57:06.827037+00:00"
+}
