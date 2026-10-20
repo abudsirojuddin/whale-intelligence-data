@@ -25,6 +25,8 @@ MIN_NET_RR=2.0
 MAX_AGE_MS=180_000
 MAX_RISK_IDR=5_000
 MAX_MARGIN_IDR=100_000
+MAX_PAPER_ALERTS_PER_WIB_DAY=5  # ceiling only, not a quota or guarantee
+SYMBOL_ALERT_COOLDOWN_MS=60*60*1000
 PAPER_ALERT_EXPLICITLY_DISABLED=True
 
 def time_ms(value):
@@ -123,6 +125,43 @@ def eligible(scan,readiness,now_ms):
         approved.append(signal)
     return approved,reasons
 
+def qualified_notification_ids(candidates, sent_ids, now_ms):
+    """Throttle strictly without inventing opportunities or sending stale repeats.
+
+    Returns only candidates not already delivered. Max five paper notifications
+    per WIB calendar day, and at least one hour between notifications for the
+    same symbol+direction. The scanner itself can evaluate every 15 minutes.
+    """
+    jakarta_day=(datetime.fromtimestamp(now_ms/1000,timezone.utc)
+                 .astimezone(__import__("datetime").timezone(__import__("datetime").timedelta(hours=7)))
+                 .date())
+    daily=0
+    for when in sent_ids.values():
+        if (type(when) in (int,float) and when<=now_ms and
+            datetime.fromtimestamp(when/1000,timezone.utc)
+            .astimezone(__import__("datetime").timezone(__import__("datetime").timedelta(hours=7))).date()==jakarta_day):
+            daily+=1
+    available=max(0,MAX_PAPER_ALERTS_PER_WIB_DAY-daily)
+    result=[]
+    for s in candidates:
+        key=str(s.get("id",""))
+        if not key or key in sent_ids:
+            continue
+        expected=f"{s['symbol']}-{s['direction']}-{s['strategy']}-{int(s['candleEndMs'])}"
+        if key!=expected:
+            continue
+        label=f"{s['symbol']}-{s['direction']}-"
+        if any(x.startswith(label) and type(t) in (int,float)
+               and 0<=now_ms-t<SYMBOL_ALERT_COOLDOWN_MS for x,t in sent_ids.items()):
+            continue
+        if any(row['symbol']==s['symbol'] and row['direction']==s['direction'] for row in result):
+            continue
+        if len(result)>=available:
+            break
+        result.append(s)
+    return result
+
+
 def paper_message(s):
     return ("\N{TEST TUBE} WHALE INTELLIGENCE V2 | PAPER SETUP\n"
             "⚠️ SIMULASI — BUKAN REKOMENDASI TRANSAKSI BINANCE\n"
@@ -153,13 +192,10 @@ def run(now=None,deliver=None,persist=True):
         not PAPER_ALERT_EXPLICITLY_DISABLED
         and os.environ.get("ENABLE_BINANCE_V2_PAPER_DELIVERY")=="YES")
     count=0
-    would_send=0
-    for s in candidates:
-        key=str(s.get("id",""))
-        expected=f"{s['symbol']}-{s['direction']}-{s['strategy']}-{int(s['candleEndMs'])}"
-        if key!=expected or key in done:
-            continue
-        would_send+=1
+    pending=qualified_notification_ids(candidates,done,now_ms)
+    would_send=len(pending)
+    for s in pending:
+        key=str(s["id"])
         if sending_enabled and (deliver or real_send)(paper_message(s)):
             done[key]=now_ms
             count+=1
