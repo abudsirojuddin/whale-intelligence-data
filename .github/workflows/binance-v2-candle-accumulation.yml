@@ -9,7 +9,7 @@ on:
       - 'scripts/binance_candle_rollup.py'
   workflow_dispatch:
   schedule:
-    - cron: '12,27,42,57 * * * *'
+    - cron: '11,26,41,56 * * * *'
 
 permissions:
   contents: write
@@ -35,7 +35,7 @@ jobs:
           python scripts/test_binance_live_collector.py
           python scripts/test_binance_candle_rollup.py
       - name: Sample Binance Futures closed candles — NO ALERTS
-        run: python scripts/binance_live_collector.py --seconds 240 --symbols BTCUSDT ETHUSDT SOLUSDT
+        run: python scripts/binance_live_collector.py --seconds 255 --symbols BTCUSDT ETHUSDT SOLUSDT
       - name: Audit native 1h/4h versus fully closed 15m candles
         run: python scripts/binance_candle_rollup.py
       - name: Save verified observations without modifying V1 workflows
