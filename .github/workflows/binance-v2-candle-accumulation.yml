@@ -48,3 +48,17 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
+
+      - name: Require closed Binance 15m candles on scheduled collection
+        if: github.event_name == 'schedule'
+        run: |
+          python - <<'PY'
+          import json
+          with open("binance_live_diagnostics.json", encoding="utf-8") as f:
+              result = json.load(f)
+          required = {"BTCUSDT", "ETHUSDT", "SOLUSDT"}
+          recorded = set(result.get("closed15mPairsAtTarget", []))
+          if result.get("status") != "FINAL_15M_CANDLES_RECORDED" or recorded != required:
+              raise SystemExit("INCOMPLETE_SCHEDULED_FUTURES_CANDLES: " + result.get("status", "UNKNOWN"))
+          print("PASS: Verified final 15m Binance USD-M candles for every watched symbol")
+          PY
