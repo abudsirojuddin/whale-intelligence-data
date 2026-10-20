@@ -25,9 +25,13 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          WATCH_TOP_N: '20'
+          WATCH_TOP_N: '30'
           MIN_ALERT_NOTIONAL_USD: '10000'
         run: python scripts/monitor_positions.py
+      - name: Scan ten liquid perpetual markets
+        run: |
+          python -m py_compile scripts/multi_coin_scanner.py
+          python scripts/multi_coin_scanner.py
       - name: Build overview and validate conditional setup
         run: python scripts/build_market_intelligence.py
       - name: Verify forward-paper simulation logic
@@ -40,7 +44,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add position_state.json alerts.json market_overview.json setups.json paper_trades.json paper_performance.json
+          git add position_state.json alerts.json market_scan.json market_overview.json setups.json paper_trades.json paper_performance.json
           if ! git diff --cached --quiet; then
             git commit -m "data: update whale market overview and research setups [skip ci]"
             git pull --rebase origin main
