@@ -1,0 +1,41 @@
+name: Binance V2 Closed Candle Accumulation (Paper Only)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '13,28,43,58 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: binance-v2-closed-candle-collector
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install read-only market stream client
+        run: python -m pip install websocket-client==1.8.0
+      - name: Validate parsing and continuity
+        run: |
+          python -m py_compile scripts/binance_live_collector.py scripts/test_binance_live_collector.py
+          python scripts/test_binance_live_collector.py
+      - name: Sample Binance Futures closed candles — NO ALERTS
+        run: python scripts/binance_live_collector.py --seconds 110 --symbols BTCUSDT ETHUSDT SOLUSDT
+      - name: Save verified observations without modifying V1 workflows
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add binance_live_candles.json binance_live_diagnostics.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: sample Binance USD-M closed candles [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
