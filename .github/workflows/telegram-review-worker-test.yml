@@ -1,0 +1,24 @@
+name: Telegram Forward Review Worker Tests
+on:
+  push:
+    branches: [feature/intraday-intelligence-v2-20261020]
+    paths:
+      - "telegram-signal-review/**"
+      - ".github/workflows/telegram-review-worker-test.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Offline privacy and trade safety checks
+        run: |
+          node --check telegram-signal-review/core.mjs
+          node --check telegram-signal-review/worker.mjs
+          node telegram-signal-review/test.mjs
