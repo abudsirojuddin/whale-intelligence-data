@@ -3,13 +3,13 @@ name: Paper Trade Validation
 on:
   workflow_dispatch:
   schedule:
-    - cron: '7,27,47 * * * *'
+    - cron: '7,17,27,37,47,57 * * * *'
 
 permissions:
   contents: write
 
 concurrency:
-  group: paper-trade-validation
+  group: whale-research-writes
   cancel-in-progress: false
 
 jobs:
@@ -27,11 +27,18 @@ jobs:
         run: python scripts/test_paper_trading.py
       - name: Update forward-only paper journal
         run: python scripts/paper_trading.py
+      - name: Notify closed simulations
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python scripts/test_notify_paper_results.py
+          python scripts/notify_paper_results.py
       - name: Commit paper journal and performance
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add paper_trades.json paper_performance.json
+          git add paper_trades.json paper_performance.json paper_result_state.json
           if ! git diff --cached --quiet; then
             git commit -m "data: record prospective paper signals [skip ci]"
             git pull --rebase origin main
