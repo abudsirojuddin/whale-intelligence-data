@@ -1,0 +1,42 @@
+name: Whale Signal Intelligence V4.5
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '6,16,26,36,46,56 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whale-signal-intelligence
+  cancel-in-progress: false
+
+jobs:
+  signals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify quality gates
+        run: |
+          python -m py_compile scripts/signal_pipeline.py scripts/test_signal_pipeline.py
+          python scripts/test_signal_pipeline.py
+      - name: Assess newest wallet observations and send tiered Telegram research
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/signal_pipeline.py
+      - name: Commit latest signals and deduplication state
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add signal_intelligence.json signal_state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "data: update qualified signal intelligence [skip ci]"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
