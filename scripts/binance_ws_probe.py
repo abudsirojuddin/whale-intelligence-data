@@ -62,7 +62,8 @@ def main():
         ws=None
         started=time.monotonic()
         try:
-            url="wss://fstream.binance.com/market/stream?streams="+stream
+            channel="public" if stream.endswith("@bookTicker") else "market"
+            url="wss://fstream.binance.com/"+channel+"/stream?streams="+stream
             ws=websocket.create_connection(url,timeout=7,enable_multithread=True,
                     header={"User-Agent":"WhaleIntelligence-ReadOnly/2"})
             ws.settimeout(2)
