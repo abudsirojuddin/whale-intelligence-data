@@ -25,7 +25,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          WATCH_TOP_N: '10'
+          WATCH_TOP_N: '30'
           MIN_ALERT_NOTIONAL_USD: '10000'
         run: python scripts/monitor_positions.py
       - name: Save latest monitoring results
