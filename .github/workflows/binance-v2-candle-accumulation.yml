@@ -31,13 +31,16 @@ jobs:
         run: |
           python -m py_compile scripts/binance_live_collector.py scripts/test_binance_live_collector.py
           python scripts/test_binance_live_collector.py
+          python scripts/test_binance_candle_rollup.py
       - name: Sample Binance Futures closed candles — NO ALERTS
         run: python scripts/binance_live_collector.py --seconds 135 --symbols BTCUSDT ETHUSDT SOLUSDT
+      - name: Audit native 1h/4h versus fully closed 15m candles
+        run: python scripts/binance_candle_rollup.py
       - name: Save verified observations without modifying V1 workflows
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add binance_live_candles.json binance_live_diagnostics.json
+          git add binance_live_candles.json binance_live_diagnostics.json binance_candle_rollup_quality.json
           if ! git diff --cached --quiet; then
             git commit -m "data: sample Binance USD-M closed candles [skip ci]"
             git pull --rebase origin main
