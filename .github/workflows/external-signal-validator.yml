@@ -1,0 +1,24 @@
+name: External Telegram Signal Validator Offline Tests
+on:
+  push:
+    branches: [feature/intraday-intelligence-v2-20261020]
+    paths:
+      - 'scripts/external_signal_validator.py'
+      - 'scripts/test_external_signal_validator.py'
+      - '.github/workflows/external-signal-validator.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test manual-only forwarded-signal validator
+        run: |
+          python -m py_compile scripts/external_signal_validator.py scripts/test_external_signal_validator.py
+          python scripts/test_external_signal_validator.py
