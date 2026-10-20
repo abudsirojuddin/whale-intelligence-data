@@ -1,0 +1,33 @@
+name: Binance Futures Connectivity Diagnostic (No Bypass)
+
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - ".github/workflows/binance-connectivity.yml"
+      - "scripts/binance_connectivity.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate diagnostic code
+        run: python -m py_compile scripts/binance_connectivity.py
+      - name: Probe public official Binance data endpoints
+        run: python scripts/binance_connectivity.py
+      - name: Save diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: binance-connectivity-${{ github.run_id }}
+          path: binance_connectivity.json
+          retention-days: 7
