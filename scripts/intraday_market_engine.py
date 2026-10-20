@@ -72,10 +72,14 @@ def market_context(context,symbol,now_ms):
     if not isinstance(obj,dict) or obj.get("symbol")!=symbol:
         return None
     marker=number(obj.get("eventTimeMs"))
+    mark_time=number(obj.get("markEventTimeMs"))
+    book_time=number(obj.get("bookEventTimeMs"))
     bid,ask,mark,rate=(number(obj.get(x)) for x in
                        ("bid","ask","markPrice","lastFundingRate"))
-    if (None in (marker,bid,ask,mark,rate)
-        or not 0<=now_ms-marker<=60_000
+    if (None in (marker,mark_time,book_time,bid,ask,mark,rate)
+        or not 0<=now_ms-marker<=60_000 or
+        not 0<=now_ms-mark_time<=60_000 or
+        not 0<=now_ms-book_time<=60_000
         or not (0<bid<ask and mark>0) or abs(rate)>.0015
         or (ask-bid)/((bid+ask)/2)*10000>15):
         return None
