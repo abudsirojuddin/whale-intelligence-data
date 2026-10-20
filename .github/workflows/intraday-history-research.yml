@@ -20,7 +20,8 @@ jobs:
         with:
           python-version: '3.12'
       - name: Validate syntax
-        run: python -m py_compile scripts/intraday_scanner.py scripts/binance_history_collector.py scripts/intraday_historical_diagnostic.py scripts/test_intraday_historical_diagnostic.py
+        run: |
+          python -m py_compile scripts/intraday_scanner.py scripts/binance_history_collector.py scripts/intraday_historical_diagnostic.py scripts/test_intraday_historical_diagnostic.py
           python scripts/test_intraday_historical_diagnostic.py
       - name: Download verified delayed Binance Futures archive
         run: python scripts/binance_history_collector.py --symbols BTCUSDT --days 30
