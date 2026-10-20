@@ -1,0 +1,39 @@
+name: Binance USD-M Market Universe Diagnostic
+
+on:
+  push:
+    branches:
+      - feature/intraday-intelligence-v2-20261020
+    paths:
+      - "scripts/binance_universe_observation.py"
+      - "scripts/test_binance_universe_observation.py"
+      - ".github/workflows/binance-universe-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned WebSocket dependency
+        run: python -m pip install websocket-client==1.8.0
+      - name: Offline safety checks
+        run: |
+          python -m py_compile scripts/binance_universe_observation.py scripts/test_binance_universe_observation.py
+          python scripts/test_binance_universe_observation.py
+      - name: Observe public Binance Futures ticker and book stream
+        run: python scripts/binance_universe_observation.py
+      - name: Upload read-only market observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: binance-universe-observation-${{ github.run_id }}
+          path: binance_universe_observation.json
+          retention-days: 7
