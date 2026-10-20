@@ -6,6 +6,7 @@ on:
     paths:
       - "scripts/intraday_alert_gate.py"
       - "scripts/test_intraday_alert_gate.py"
+      - "scripts/test_intraday_alert_cadence.py"
       - ".github/workflows/binance-v2-alert-gate.yml"
   workflow_dispatch:
 permissions:
@@ -23,5 +24,6 @@ jobs:
         run: |
           python -m py_compile scripts/intraday_alert_gate.py scripts/test_intraday_alert_gate.py
           python scripts/test_intraday_alert_gate.py
+          python scripts/test_intraday_alert_cadence.py
       - name: Preview current gate without Telegram delivery
         run: python scripts/intraday_alert_gate.py --dry-run
