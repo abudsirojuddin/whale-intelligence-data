@@ -4,7 +4,7 @@ m_spec=importlib.util.spec_from_file_location("bridge",Path(__file__).with_name(
 m=importlib.util.module_from_spec(m_spec);m_spec.loader.exec_module(m)
 now=2_000_000_000_000
 for interval,width in m.INTERVAL_MS.items():
-    end_slot=(now//width)-1
+    end_slot=now//width
     rows=[{"start":(end_slot-75+i)*width,"end":(end_slot-74+i)*width-1,
            "open":100.,"high":102.,"low":99.,"close":101.,"volume":150.} for i in range(75)]
     assert m.join_series(rows[:-5],rows[-5:],interval,now)["status"]=="READY"
