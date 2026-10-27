@@ -1,28 +1,40 @@
 {
-  "checkedAt": "2026-10-27T01:00:55.923012+00:00",
+  "checkedAt": "2026-10-27T06:14:14.711466+00:00",
   "liveBrokerExecutable": false,
   "source": "BINANCE_USDM_PUBLIC_WEBSOCKET",
   "secondsRequested": 255,
-  "next15mBoundaryMs": 1793063700000,
-  "secondsUntilBoundaryAtStart": 844.08,
-  "runCoversNext15mBoundary": false,
+  "next15mBoundaryMs": 1793081700000,
+  "secondsUntilBoundaryAtStart": 45.29,
+  "runCoversNext15mBoundary": true,
   "eventCounts": {
-    "received": 0,
-    "closed": 0,
-    "invalidOrOpen": 0
+    "received": 3817,
+    "closed": 3,
+    "invalidOrOpen": 3814
   },
-  "klineUpdatesByFrame": {},
-  "finalEventsByFrame": {},
+  "klineUpdatesByFrame": {
+    "ETHUSDT:15m": 493,
+    "ETHUSDT:4h": 492,
+    "ETHUSDT:1h": 492,
+    "BTCUSDT:4h": 384,
+    "BTCUSDT:1h": 384,
+    "BTCUSDT:15m": 384,
+    "SOLUSDT:15m": 396,
+    "SOLUSDT:4h": 396,
+    "SOLUSDT:1h": 396
+  },
+  "finalEventsByFrame": {
+    "SOLUSDT:15m": 1,
+    "ETHUSDT:15m": 1,
+    "BTCUSDT:15m": 1
+  },
   "writes": {
     "APPENDED": 0,
-    "GAP_DETECTED": 0,
+    "GAP_DETECTED": 3,
     "DUPLICATE": 0,
     "CONFLICT": 0,
     "OLD_EVENT": 0
   },
-  "errors": [
-    "MISSED_15M_BOUNDARY_WINDOW"
-  ],
+  "errors": [],
   "quality": {
     "BTCUSDT:15m": "WARMING_UP",
     "BTCUSDT:1h": "WARMING_UP",
@@ -35,7 +47,11 @@
     "SOLUSDT:4h": "WARMING_UP"
   },
   "readyForTechnicalAnalysis": false,
-  "closed15mPairsAtTarget": [],
-  "status": "MISSED_SCHEDULE_WINDOW",
-  "finishedAt": "2026-10-27T01:00:55.923039+00:00"
+  "closed15mPairsAtTarget": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT"
+  ],
+  "status": "FINAL_15M_CANDLES_RECORDED",
+  "finishedAt": "2026-10-27T06:18:30.122674+00:00"
 }
