@@ -1,10 +1,10 @@
 {
-  "checkedAt": "2026-11-03T11:30:06.310524+00:00",
+  "checkedAt": "2026-11-03T18:39:22.510863+00:00",
   "liveBrokerExecutable": false,
   "source": "BINANCE_USDM_PUBLIC_WEBSOCKET",
   "secondsRequested": 255,
-  "next15mBoundaryMs": 1793706300000,
-  "secondsUntilBoundaryAtStart": 893.69,
+  "next15mBoundaryMs": 1793731500000,
+  "secondsUntilBoundaryAtStart": 337.49,
   "runCoversNext15mBoundary": false,
   "eventCounts": {
     "received": 0,
@@ -37,5 +37,5 @@
   "readyForTechnicalAnalysis": false,
   "closed15mPairsAtTarget": [],
   "status": "MISSED_SCHEDULE_WINDOW",
-  "finishedAt": "2026-11-03T11:30:06.310555+00:00"
+  "finishedAt": "2026-11-03T18:39:22.510905+00:00"
 }
