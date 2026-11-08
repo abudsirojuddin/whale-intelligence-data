@@ -1,35 +1,38 @@
 {
-  "checkedAt": "2026-11-07T22:42:34.734389+00:00",
+  "checkedAt": "2026-11-08T01:57:45.983552+00:00",
   "liveBrokerExecutable": false,
   "source": "BINANCE_USDM_PUBLIC_WEBSOCKET",
   "secondsRequested": 255,
-  "next15mBoundaryMs": 1794091500000,
-  "secondsUntilBoundaryAtStart": 145.27,
+  "next15mBoundaryMs": 1794103200000,
+  "secondsUntilBoundaryAtStart": 134.02,
   "runCoversNext15mBoundary": true,
   "eventCounts": {
-    "received": 1731,
-    "closed": 3,
-    "invalidOrOpen": 1728
+    "received": 3013,
+    "closed": 6,
+    "invalidOrOpen": 3007
   },
   "klineUpdatesByFrame": {
-    "SOLUSDT:15m": 118,
-    "SOLUSDT:4h": 118,
-    "SOLUSDT:1h": 118,
-    "ETHUSDT:15m": 264,
-    "ETHUSDT:4h": 264,
-    "ETHUSDT:1h": 264,
-    "BTCUSDT:4h": 195,
-    "BTCUSDT:1h": 195,
-    "BTCUSDT:15m": 195
+    "SOLUSDT:15m": 352,
+    "SOLUSDT:4h": 352,
+    "SOLUSDT:1h": 352,
+    "BTCUSDT:4h": 306,
+    "BTCUSDT:1h": 306,
+    "BTCUSDT:15m": 307,
+    "ETHUSDT:15m": 346,
+    "ETHUSDT:4h": 346,
+    "ETHUSDT:1h": 346
   },
   "finalEventsByFrame": {
-    "SOLUSDT:15m": 1,
+    "BTCUSDT:1h": 1,
+    "BTCUSDT:15m": 1,
     "ETHUSDT:15m": 1,
-    "BTCUSDT:15m": 1
+    "ETHUSDT:1h": 1,
+    "SOLUSDT:15m": 1,
+    "SOLUSDT:1h": 1
   },
   "writes": {
     "APPENDED": 0,
-    "GAP_DETECTED": 3,
+    "GAP_DETECTED": 6,
     "DUPLICATE": 0,
     "CONFLICT": 0,
     "OLD_EVENT": 0
@@ -53,5 +56,5 @@
     "SOLUSDT"
   ],
   "status": "FINAL_15M_CANDLES_RECORDED",
-  "finishedAt": "2026-11-07T22:46:23.330552+00:00"
+  "finishedAt": "2026-11-08T02:02:01.255567+00:00"
 }
